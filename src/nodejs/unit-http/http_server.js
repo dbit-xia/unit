@@ -336,19 +336,25 @@ ServerResponse.prototype._end = unit_lib.response_end;
 
 ServerResponse.prototype.end = function end(chunk, encoding, callback) {
     if (!this.finished) {
-        if (typeof encoding === 'function') {
+        if (typeof chunk === 'function') {
+            callback = chunk;
+            chunk = null;
+            encoding = null;
+        } else if (typeof encoding === 'function') {
             callback = encoding;
             encoding = null;
         }
 
         this._writeBody(chunk, encoding, () => {
             this._end();
-
+            this.writableEnded = true; //match fastify.reply
             if (typeof callback === 'function') {
                 callback();
             }
 
             this.emit("finish");
+
+            this.emit("close"); //match opentelemetry
         });
 
         this.finished = true;
